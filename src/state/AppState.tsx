@@ -121,6 +121,10 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     } catch {
       // Storage unavailable (private mode) or corrupt: start fresh.
     }
+    if (stored.distanceMm === undefined && window.matchMedia?.("(pointer: coarse)").matches) {
+      // Touch devices default to the hand-held near test.
+      stored.distanceMm = 400;
+    }
     dispatch({ type: "hydrate", state: stored });
   }, []);
 

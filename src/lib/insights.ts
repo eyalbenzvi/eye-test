@@ -4,7 +4,7 @@
  * moderate: worse than 6/18, severe: worse than 6/60).
  */
 
-import { roundTo } from "./optometry";
+import { roundTo, type TestMode } from "./optometry";
 import type { EyeScore } from "./testEngine";
 
 export type Severity = "normal" | "borderline" | "mild" | "moderate" | "severe";
@@ -15,8 +15,14 @@ export interface Classification {
   description: string;
 }
 
-export function classify(score: EyeScore): Classification {
+/** Reference wording for 0.0 LogMAR in each mode. */
+function reference(mode: TestMode): string {
+  return mode === "near" ? "standard near acuity (equivalent to 6/6)" : "the standard reference of 6/6 (20/20) acuity";
+}
+
+export function classify(score: EyeScore, mode: TestMode = "distance"): Classification {
   const v = score.logMAR;
+  const near = mode === "near";
   if (score.worseThanRange || v > 1.0) {
     return {
       severity: "severe",
@@ -28,34 +34,40 @@ export function classify(score: EyeScore): Classification {
     return {
       severity: "normal",
       label: "Normal",
-      description: "Meets or exceeds the standard reference of 6/6 (20/20) acuity.",
+      description: `Meets or exceeds ${reference(mode)}.`,
     };
   }
   if (v <= 0.2) {
     return {
       severity: "borderline",
       label: "Slightly below standard",
-      description: "Slightly below 6/6. Often due to a small uncorrected refractive error.",
+      description: near
+        ? "Slightly below standard near acuity. Common with early presbyopia or mild farsightedness."
+        : "Slightly below 6/6. Often due to a small uncorrected refractive error.",
     };
   }
   if (v <= 0.3) {
     return {
       severity: "mild",
       label: "Reduced",
-      description: "Noticeably below 6/6, around the 6/12 level used by many driving standards.",
+      description: near
+        ? "Noticeably below standard. Small print such as medicine labels may be hard to read."
+        : "Noticeably below 6/6, around the 6/12 level used by many driving standards.",
     };
   }
   if (v <= 0.5) {
     return {
       severity: "moderate",
       label: "Mild impairment range",
-      description: "Worse than 6/12. Daily tasks such as driving or reading signs may be affected.",
+      description: near
+        ? "Worse than the 6/12 equivalent. Reading ordinary print is likely affected."
+        : "Worse than 6/12. Daily tasks such as driving or reading signs may be affected.",
     };
   }
   return {
     severity: "severe",
     label: "Moderate to severe impairment range",
-    description: "Substantially reduced distance acuity. Please arrange a professional eye examination soon.",
+    description: `Substantially reduced ${near ? "near" : "distance"} acuity. Please arrange a professional eye examination soon.`,
   };
 }
 
@@ -91,9 +103,10 @@ export interface Recommendation {
   points: string[];
 }
 
-export function recommend(right: EyeScore, left: EyeScore): Recommendation {
-  const r = classify(right);
-  const l = classify(left);
+export function recommend(right: EyeScore, left: EyeScore, mode: TestMode = "distance"): Recommendation {
+  const near = mode === "near";
+  const r = classify(right, mode);
+  const l = classify(left, mode);
   const io = interocular(right, left);
   const severities = [r.severity, l.severity];
   const points: string[] = [];
@@ -103,23 +116,35 @@ export function recommend(right: EyeScore, left: EyeScore): Recommendation {
   }
   if (severities.some((s) => s !== "normal")) {
     points.push(
-      "Reduced distance acuity is most often caused by refractive error (myopia/nearsightedness or astigmatism) that glasses or contact lenses can correct, but it can also signal other eye conditions.",
+      near
+        ? "Reduced near acuity is most often caused by presbyopia (the age-related loss of focusing, usually from about age 40) or farsightedness, both correctable with reading or multifocal glasses. It can also signal other eye conditions."
+        : "Reduced distance acuity is most often caused by refractive error (myopia/nearsightedness or astigmatism) that glasses or contact lenses can correct, but it can also signal other eye conditions.",
     );
-    points.push("If you already wear glasses or contacts, your prescription may need updating.");
+    points.push(
+      near
+        ? "If you already use reading glasses or multifocals, they may need updating."
+        : "If you already wear glasses or contacts, your prescription may need updating.",
+    );
   }
   if (io.level === "significant") {
     points.push(
       `There is a ${io.difference.toFixed(2)} LogMAR (≈${Math.round(io.difference * 10)}-line) difference between your eyes. Asymmetric vision should be checked by a professional, even if your better eye sees well.`,
     );
   }
-  if (Math.min(right.logMAR, left.logMAR) > 0.3) {
+  if (!near && Math.min(right.logMAR, left.logMAR) > 0.3) {
     points.push(
       "Both eyes scored below 6/12 (20/40), the minimum binocular standard for driving in many regions. Avoid driving until you have been examined.",
     );
   }
   if (points.length === 0) {
-    points.push("Your results are within the normal range for both eyes.");
+    points.push(`Your ${near ? "near" : "distance"} results are within the normal range for both eyes.`);
     points.push("Continue routine comprehensive eye examinations (typically every 1–2 years, or as advised).");
+  }
+
+  if (near) {
+    points.push(
+      "A near test cannot detect nearsightedness (myopia), because nearsighted eyes often see well up close. Use the 2–3 m test to screen distance vision.",
+    );
   }
 
   let urgency: Urgency = "routine";

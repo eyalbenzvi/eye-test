@@ -8,6 +8,26 @@ import { DISTANCE_OPTIONS, formatLogMAR, optotypeHeightMm } from "@/lib/optometr
 import { CROWDED_EXTENT_RATIO, analyseLevels, testableLevels } from "@/lib/rendering";
 import { useAppState, type AppState } from "@/state/AppState";
 
+const GROUPS = [
+  {
+    mode: "near",
+    title: "Near vision · phone in hand",
+    body: "Hold the phone at reading distance and answer by tapping or swiping on the screen. This checks how well each eye sees up close (for example, for presbyopia). It does not detect nearsightedness.",
+  },
+  {
+    mode: "distance",
+    title: "Distance vision · across the room",
+    body: "Stand 2–3 m from the screen. This is the standard eye-chart test and screens for nearsightedness and astigmatism. You will need a helper, a Bluetooth keyboard or a remote to answer.",
+  },
+] as const;
+
+const NOTES: Record<number, string> = {
+  400: "Standard reading distance. Recommended for phones.",
+  300: "For a shorter reach. Smaller symbols, so the smallest levels may be skipped.",
+  3000: "Recommended for tablets, laptops and desktop monitors.",
+  2000: "Suits smaller rooms.",
+};
+
 const needsCalibration = (s: AppState) => s.disclaimerAccepted && s.calibration !== null;
 
 export default function SetupPage() {
@@ -48,45 +68,46 @@ export default function SetupPage() {
     <Shell step="setup">
       <div className="space-y-8">
         <header className="max-w-3xl space-y-3">
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Choose your testing distance</h1>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Choose your test</h1>
           <p className="text-slate-600">
-            Measure the distance from the screen to your eyes with a tape measure — accuracy matters. An error of 10% in
-            distance changes your score by about half a line.
+            Measure the distance from the screen to your eyes with a tape measure or ruler. Accuracy matters: an error of
+            10% in distance changes your score by about half a line.
           </p>
         </header>
 
-        <fieldset className="grid gap-4 sm:grid-cols-2">
-          <legend className="sr-only">Testing distance</legend>
-          {DISTANCE_OPTIONS.map((opt) => {
-            const selected = state.distanceMm === opt.mm;
-            return (
-              <label
-                key={opt.mm}
-                className={`cursor-pointer rounded-2xl border-2 p-6 ${
-                  selected ? "border-clinic-600 bg-clinic-50" : "border-slate-200 hover:border-slate-300"
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="distance"
-                  className="sr-only"
-                  checked={selected}
-                  onChange={() => dispatch({ type: "setDistance", distanceMm: opt.mm })}
-                />
-                <span className="block text-3xl font-bold text-slate-900">{opt.metricLabel}</span>
-                <span className="block text-lg text-slate-600">{opt.imperialLabel}</span>
-                <span className="mt-3 block text-sm text-slate-500">
-                  6/6 symbol height: {optotypeHeightMm(0, opt.mm).toFixed(2)} mm
-                </span>
-                <span className="block text-sm text-slate-500">
-                  {opt.mm === 3000
-                    ? "Recommended for tablets, laptops and desktop monitors."
-                    : "Suits smaller rooms and smartphones."}
-                </span>
-              </label>
-            );
-          })}
-        </fieldset>
+        {GROUPS.map((group) => (
+          <fieldset key={group.mode} className="space-y-3">
+            <legend className="text-lg font-bold text-slate-900">{group.title}</legend>
+            <p className="max-w-3xl text-sm text-slate-600">{group.body}</p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {DISTANCE_OPTIONS.filter((o) => o.mode === group.mode).map((opt) => {
+                const selected = state.distanceMm === opt.mm;
+                return (
+                  <label
+                    key={opt.mm}
+                    className={`cursor-pointer rounded-2xl border-2 p-5 ${
+                      selected ? "border-clinic-600 bg-clinic-50" : "border-slate-200 hover:border-slate-300"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="distance"
+                      className="sr-only"
+                      checked={selected}
+                      onChange={() => dispatch({ type: "setDistance", distanceMm: opt.mm })}
+                    />
+                    <span className="block text-3xl font-bold text-slate-900">{opt.metricLabel}</span>
+                    <span className="block text-lg text-slate-600">{opt.imperialLabel}</span>
+                    <span className="mt-3 block text-sm text-slate-500">
+                      6/6-equivalent symbol height: {optotypeHeightMm(0, opt.mm).toFixed(2)} mm
+                    </span>
+                    <span className="block text-sm text-slate-500">{NOTES[opt.mm]}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </fieldset>
+        ))}
 
         <label className="flex max-w-3xl cursor-pointer items-start gap-3 rounded-xl border border-slate-200 p-4">
           <input

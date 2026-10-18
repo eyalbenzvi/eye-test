@@ -12,7 +12,7 @@ import {
   type Severity,
   type Urgency,
 } from "@/lib/insights";
-import { DISTANCE_OPTIONS, formatLogMAR, toNotations } from "@/lib/optometry";
+import { distanceOption, formatLogMAR, mUnits, toNotations, type TestMode } from "@/lib/optometry";
 import type { EyeScore } from "@/lib/testEngine";
 import { useAppState, type AppState } from "@/state/AppState";
 
@@ -36,10 +36,13 @@ const URGENCY_STYLE: Record<Urgency, string> = {
 };
 
 /** Displayed score, clamped to the measured range with an inequality qualifier where needed. */
-function displayScore(score: EyeScore) {
+function displayScore(score: EyeScore, distanceMm: number) {
+  const d = distanceMm / 1000;
+  const m = (logMAR: number) => `${d}/${mUnits(logMAR, distanceMm).toFixed(2)}M`;
   if (score.worseThanRange) {
     const n = toNotations(score.largestLevel);
     return {
+      mUnits: `worse than ${m(score.largestLevel)}`,
       logMAR: `> ${formatLogMAR(score.largestLevel)}`,
       decimal: `< ${n.decimal.toFixed(2)}`,
       metric: `worse than ${n.snellenMetric}`,
@@ -50,6 +53,7 @@ function displayScore(score: EyeScore) {
   const n = toNotations(score.logMAR);
   const q = score.betterThanRange ? "≥ " : "";
   return {
+    mUnits: `${score.betterThanRange ? "≤ " : ""}${m(n.logMAR)}`,
     logMAR: `${score.betterThanRange ? "≤ " : ""}${formatLogMAR(n.logMAR)}`,
     decimal: `${q}${n.decimal.toFixed(2)}`,
     metric: `${q}${n.snellenMetric}`,
@@ -66,10 +70,12 @@ export default function ResultsPage() {
   if (!ready || !state.results?.right || !state.results.left) return null;
   const { right, left, calibration, distanceMm, crowding, completedAt, startedAt } = state.results;
   const io = interocular(right, left);
-  const rec = recommend(right, left);
-  const distance = DISTANCE_OPTIONS.find((d) => d.mm === distanceMm)!;
+  const distance = distanceOption(distanceMm);
+  const mode = distance.mode;
+  const near = mode === "near";
+  const rec = recommend(right, left, mode);
   const date = new Date(completedAt ?? startedAt);
-  const anyReduced = [right, left].some((s) => classify(s).severity !== "normal");
+  const anyReduced = [right, left].some((s) => classify(s, mode).severity !== "normal");
 
   return (
     <Shell step="results">
@@ -77,7 +83,7 @@ export default function ResultsPage() {
         <header className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="hidden text-sm font-bold uppercase tracking-widest print:block">AcuityCheck</p>
-            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Your visual acuity results</h1>
+            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Your {near ? "near" : "distance"} visual acuity results</h1>
             <p className="text-slate-600">
               {date.toLocaleDateString(undefined, { dateStyle: "long" })} ·{" "}
               {date.toLocaleTimeString(undefined, { timeStyle: "short" })} · Tested at {distance.metricLabel} (
@@ -103,8 +109,8 @@ export default function ResultsPage() {
         </section>
 
         <section className="grid gap-5 md:grid-cols-2">
-          <EyeCard title="Right eye" abbr="OD" score={right} />
-          <EyeCard title="Left eye" abbr="OS" score={left} />
+          <EyeCard title="Right eye" abbr="OD" score={right} mode={mode} distanceMm={distanceMm} />
+          <EyeCard title="Left eye" abbr="OS" score={left} mode={mode} distanceMm={distanceMm} />
         </section>
 
         {io.level !== "none" && (
@@ -125,7 +131,28 @@ export default function ResultsPage() {
           </section>
         )}
 
-        {anyReduced && (
+        {anyReduced && near && (
+          <section className="print-card rounded-2xl border border-slate-200 p-5">
+            <h2 className="font-bold">What reduced near acuity can mean</h2>
+            <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-700">
+              <li>
+                <strong>Presbyopia:</strong> the eye&apos;s lens gradually loses its ability to focus up close, usually
+                noticeable from about age 40. Small print looks blurred and you hold things further away. Reading glasses
+                correct it.
+              </li>
+              <li>
+                <strong>Hyperopia (farsightedness):</strong> the eye has to work harder to focus, most of all up close.
+                It can cause blur, eye strain or headaches when reading.
+              </li>
+              <li>
+                <strong>Other causes:</strong> outdated reading glasses, astigmatism, dry eye, cataract, or retinal
+                conditions. A screening test cannot tell these apart. Only a professional exam can.
+              </li>
+            </ul>
+          </section>
+        )}
+
+        {anyReduced && !near && (
           <section className="print-card rounded-2xl border border-slate-200 p-5">
             <h2 className="font-bold">What reduced distance acuity can mean</h2>
             <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-700">
@@ -188,9 +215,18 @@ export default function ResultsPage() {
   );
 }
 
-function EyeCard({ title, abbr, score }: { title: string; abbr: string; score: EyeScore }) {
-  const c = classify(score);
-  const d = displayScore(score);
+interface EyeCardProps {
+  title: string;
+  abbr: string;
+  score: EyeScore;
+  mode: TestMode;
+  distanceMm: number;
+}
+
+function EyeCard({ title, abbr, score, mode, distanceMm }: EyeCardProps) {
+  const c = classify(score, mode);
+  const d = displayScore(score, distanceMm);
+  const near = mode === "near";
   return (
     <article className="print-card rounded-2xl border border-slate-200 p-5 shadow-sm">
       <header className="flex flex-wrap-reverse items-start justify-between gap-3">
@@ -210,7 +246,9 @@ function EyeCard({ title, abbr, score }: { title: string; abbr: string; score: E
       >
         {d.metric}
       </p>
-      <dl className="mt-4 grid grid-cols-3 gap-2 text-center">
+      {near && <p className="text-xs text-slate-500">Snellen equivalent</p>}
+      <dl className={`mt-4 grid gap-2 text-center ${near ? "grid-cols-2" : "grid-cols-3"}`}>
+        {near && <Metric label="Near (M-units)" value={d.mUnits} />}
         <Metric label="Decimal" value={d.decimal} />
         <Metric label="Snellen (ft)" value={d.imperial} />
         <Metric label="LogMAR" value={d.logMAR} />

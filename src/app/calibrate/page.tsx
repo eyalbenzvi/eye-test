@@ -50,7 +50,10 @@ export default function CalibratePage() {
           </p>
           <ol className="list-decimal space-y-1 pl-5 text-sm text-slate-700">
             <li>Set browser zoom to 100% and keep it unchanged for the whole test.</li>
-            <li>Hold the card flat against the screen, aligning its top-left corner with the outline.</li>
+            <li>
+              Hold the card flat against the screen, aligning its top-left corner with the outline. On a phone the
+              outline stands upright, so hold the card upright too.
+            </li>
             <li>Use the slider or the buttons until the outline&apos;s outer edge matches the card exactly.</li>
             <li>Look straight at the screen (not at an angle) when judging the edges.</li>
           </ol>

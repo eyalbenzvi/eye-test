@@ -21,16 +21,31 @@ export const LOGMAR_MAX = 1.0;
 export const LOGMAR_MIN = -0.2;
 export const LOGMAR_STEP = 0.1;
 
-export type TestDistance = 2000 | 3000;
+export type TestDistance = 300 | 400 | 2000 | 3000;
+export type TestMode = "distance" | "near";
 
-export const DISTANCE_OPTIONS: ReadonlyArray<{
+export interface DistanceOption {
   mm: TestDistance;
+  mode: TestMode;
   metricLabel: string;
   imperialLabel: string;
-}> = [
-  { mm: 2000, metricLabel: "2 meters", imperialLabel: "6.5 feet" },
-  { mm: 3000, metricLabel: "3 meters", imperialLabel: "10 feet" },
+}
+
+export const DISTANCE_OPTIONS: ReadonlyArray<DistanceOption> = [
+  { mm: 3000, mode: "distance", metricLabel: "3 meters", imperialLabel: "10 feet" },
+  { mm: 2000, mode: "distance", metricLabel: "2 meters", imperialLabel: "6.5 feet" },
+  { mm: 400, mode: "near", metricLabel: "40 cm", imperialLabel: "16 inches" },
+  { mm: 300, mode: "near", metricLabel: "30 cm", imperialLabel: "12 inches" },
 ];
+
+/** Tests closer than 1 m measure near acuity (accommodation is involved), not distance acuity. */
+export function modeForDistance(distanceMm: number): TestMode {
+  return distanceMm < 1000 ? "near" : "distance";
+}
+
+export function distanceOption(distanceMm: number): DistanceOption {
+  return DISTANCE_OPTIONS.find((d) => d.mm === distanceMm) ?? DISTANCE_OPTIONS[0];
+}
 
 /** Round to a fixed number of decimals, avoiding binary float noise (e.g. 0.30000000000000004). */
 export function roundTo(value: number, decimals: number): number {
@@ -71,6 +86,15 @@ export function optotypeHeightMm(logMAR: number, distanceMm: number): number {
 /** Convert a physical size in mm into CSS pixels using a calibrated pixels-per-mm ratio. */
 export function mmToCssPx(mm: number, pxPerMm: number): number {
   return mm * pxPerMm;
+}
+
+/**
+ * M-units (Sloan): the distance in metres at which the optotype subtends 5′.
+ * At viewing distance d, a LogMAR score corresponds to d(m) × 10^LogMAR M,
+ * e.g. 0.0 LogMAR at 40 cm = 0.4M ("0.4/0.4M").
+ */
+export function mUnits(logMAR: number, distanceMm: number): number {
+  return (distanceMm / 1000) * marFromLogMAR(logMAR);
 }
 
 export interface AcuityNotation {

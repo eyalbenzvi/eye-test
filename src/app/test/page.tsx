@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { DirectionPad } from "@/components/DirectionPad";
 import { TumblingE } from "@/components/TumblingE";
 import { useRequireStep } from "@/components/useRequireStep";
-import { DISTANCE_OPTIONS, formatLogMAR } from "@/lib/optometry";
+import { distanceOption, formatLogMAR } from "@/lib/optometry";
 import { CROWDED_EXTENT_RATIO, analyseLevels, snapOptotypeSize, testableLevels } from "@/lib/rendering";
 import {
   DEFAULT_PASS_THRESHOLD,
@@ -35,6 +35,7 @@ const secureRandom = () => {
 /** Ignore inputs arriving faster than this after an answer (key bounce, double-firing remotes). */
 const INPUT_LOCKOUT_MS = 250;
 const REST_SECONDS = 10;
+const SWIPE_MIN_PX = 40;
 
 const KEY_MAP: Record<string, Answer> = {
   ArrowUp: "up",
@@ -64,6 +65,7 @@ export default function TestPage() {
   const [displayOk, setDisplayOk] = useState(true);
   const stimulusRef = useRef<HTMLDivElement>(null);
   const lastInput = useRef(0);
+  const swipeStart = useRef<{ x: number; y: number } | null>(null);
 
   const results = state.results;
   const calibration = results?.calibration;
@@ -89,7 +91,7 @@ export default function TestPage() {
     const levels = testableLevels(info);
     if (levels.length < 2) {
       setError(
-        "This screen area is too small to draw the test symbols accurately at the selected distance. Try full-screen mode, a larger screen, or the 2 m distance.",
+        "This screen cannot draw the test symbols accurately at the selected distance. Try full-screen mode, a larger screen, or a longer distance.",
       );
       return;
     }
@@ -171,6 +173,23 @@ export default function TestPage() {
     return () => window.removeEventListener("keydown", onKey);
   }, [stage, respond, startEye, restLeft]);
 
+  // Swipe in the direction the E's bars point (touch, pen or mouse drag).
+  const onPointerDown = (e: React.PointerEvent) => {
+    if (stage === "running") swipeStart.current = { x: e.clientX, y: e.clientY };
+  };
+  const onPointerUp = (e: React.PointerEvent) => {
+    const start = swipeStart.current;
+    swipeStart.current = null;
+    if (!start || stage !== "running") return;
+    const dx = e.clientX - start.x;
+    const dy = e.clientY - start.y;
+    const ax = Math.abs(dx);
+    const ay = Math.abs(dy);
+    // Require a deliberate, clearly horizontal or vertical stroke.
+    if (Math.max(ax, ay) < SWIPE_MIN_PX || Math.max(ax, ay) < 1.5 * Math.min(ax, ay)) return;
+    respond(ax > ay ? (dx > 0 ? "right" : "left") : dy > 0 ? "down" : "up");
+  };
+
   const toggleFullscreen = () => {
     if (document.fullscreenElement) void document.exitFullscreen();
     else void document.documentElement.requestFullscreen?.().catch(() => undefined);
@@ -178,7 +197,8 @@ export default function TestPage() {
 
   if (!ready || !results || !calibration) return null;
 
-  const distance = DISTANCE_OPTIONS.find((d) => d.mm === distanceMm)!;
+  const distance = distanceOption(distanceMm);
+  const near = distance.mode === "near";
   const covered = eye === "right" ? "LEFT" : "RIGHT";
   const testing = eye === "right" ? "RIGHT" : "LEFT";
   const current = session && stage !== "intro" ? session : null;
@@ -212,7 +232,14 @@ export default function TestPage() {
       </div>
 
       {/* Stimulus canvas: pure white, nothing but the optotype while running. */}
-      <div ref={stimulusRef} className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-white">
+      <div
+        ref={stimulusRef}
+        onPointerDown={onPointerDown}
+        onPointerUp={onPointerUp}
+        onPointerCancel={() => (swipeStart.current = null)}
+        style={{ touchAction: stage === "running" ? "none" : "auto" }}
+        className="relative flex min-h-0 flex-1 select-none items-center justify-center overflow-hidden bg-white"
+      >
         {stage === "running" && current && size && (
           <TumblingE
             key={current.engine.history.length}
@@ -230,12 +257,15 @@ export default function TestPage() {
             </p>
             <h1 className="text-4xl font-black sm:text-6xl">Cover your {covered} eye</h1>
             <p className="max-w-xl text-lg text-slate-700 sm:text-xl">
-              Use your palm or an eye patch. Do not press on the eye, and keep both eyes open behind the cover. Stand
-              at {distance.metricLabel} ({distance.imperialLabel}).
+              Use your palm or an eye patch. Do not press on the eye, and keep both eyes open behind the cover.{" "}
+              {near
+                ? `Hold the phone upright, ${distance.metricLabel} (${distance.imperialLabel}) from your eyes, and keep it there.`
+                : `Stand at ${distance.metricLabel} (${distance.imperialLabel}).`}
             </p>
             <p className="max-w-xl text-base text-slate-600">
-              For each symbol, answer the direction the bars of the E point. If you cannot tell, take your best guess —
-              or choose Unsure.
+              {near
+                ? "For each symbol, tap the arrow for the direction the bars of the E point, or swipe that way on the white area. If you cannot tell, take your best guess or tap Unsure."
+                : "For each symbol, answer the direction the bars of the E point. If you cannot tell, take your best guess or choose Unsure."}
             </p>
             {!displayOk && (
               <p className="max-w-xl rounded-lg bg-amber-100 p-3 text-sm text-amber-900">
@@ -253,7 +283,7 @@ export default function TestPage() {
             >
               Start {testing.toLowerCase()} eye
             </button>
-            <p className="text-sm text-slate-500">or press any arrow key / Space</p>
+            {!near && <p className="text-sm text-slate-500">or press any arrow key / Space</p>}
           </Overlay>
         )}
 
@@ -303,7 +333,7 @@ export default function TestPage() {
           stage === "running" || stage === "paused" ? "" : "invisible"
         }`}
       >
-        <DirectionPad onAnswer={respond} disabled={stage !== "running"} />
+        <DirectionPad onAnswer={respond} disabled={stage !== "running"} large={near} />
       </div>
     </div>
   );

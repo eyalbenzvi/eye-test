@@ -21,9 +21,9 @@ npm run typecheck && npm run lint && npm run build
 | ------------ | -------------------------------------------------------------------------------------------- |
 | `/`          | Welcome, purpose, mandatory disclaimer acknowledgement                                       |
 | `/calibrate` | Match an on-screen ISO/IEC 7810 ID-1 card (85.6 × 53.98 mm) → pixels-per-mm; optional 50 mm ruler check |
-| `/setup`     | Distance (2 m / 6.5 ft or 3 m / 10 ft), crowding bars, measurable-range preview               |
+| `/setup`     | Near (30 / 40 cm, phone in hand) or distance (2 / 3 m), crowding bars, measurable-range preview |
 | `/checklist` | Lighting, max brightness, filters off, no glare, distance measured, correction, controls      |
-| `/test`      | Right eye → rest → left eye; on-screen pad or keyboard (arrows, Space = unsure, Esc = pause)   |
+| `/test`      | Right eye → rest → left eye; tap the pad, swipe on the stimulus, or keyboard (arrows, Space = unsure, Esc = pause) |
 | `/results`   | Per-eye scores in all notations, insights, interocular alert, guidance, print / save as PDF   |
 
 ## How accuracy is achieved
@@ -37,6 +37,18 @@ npm run typecheck && npm run lint && npm run build
   be under 1.5 physical device pixels, are excluded. Sizes are snapped to whole device pixels (and the element
   aligned to the device grid) only when that changes the size by ≤ 2.5%; otherwise exact geometry wins.
 - **No motion**: optotypes are crisp SVG paths, `#000` on `#FFF`, swapped instantly with no transitions.
+
+## Near mode (phone in hand)
+
+At 30–40 cm the same optics apply (0.0 LogMAR at 40 cm = 0.58 mm = 0.4M). Results add M-units and use near-specific
+interpretation: reduced near acuity points to presbyopia or hyperopia, and the report states that a near test cannot
+detect myopia. On narrow screens the calibration card is drawn upright so a phone in portrait can be calibrated.
+Touch devices default to the 40 cm test.
+
+## Single-file build
+
+`npm run build:standalone` writes `dist/acuitycheck.html`, a self-contained page (React, app code and CSS inlined)
+that runs without a server.
 
 ## Test protocol (`src/lib/testEngine.ts`)
 

@@ -39,6 +39,7 @@ const js = result.outputFiles[0].text.replace(/<\/script/gi, "<\\/script");
 const css = readFileSync(path.join(dist, "app.css"), "utf8");
 
 const html = `<title>AcuityCheck</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <style>
 ${css}
 /* Standalone: fill the host frame instead of the raw viewport. */

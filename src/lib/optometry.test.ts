@@ -3,6 +3,8 @@ import {
   LOGMAR_LEVELS,
   baseOptotypeHeightMm,
   formatLogMAR,
+  modeForDistance,
+  mUnits,
   optotypeHeightMm,
   toNotations,
 } from "./optometry";
@@ -48,5 +50,21 @@ describe("notations", () => {
     expect(formatLogMAR(0)).toBe("0.00");
     expect(formatLogMAR(0.3)).toBe("+0.30");
     expect(formatLogMAR(-0.1)).toBe("−0.10");
+  });
+});
+
+describe("near testing", () => {
+  it("0.0 LogMAR at 40 cm is 0.582 mm and 0.4M", () => {
+    expect(baseOptotypeHeightMm(400)).toBeCloseTo(0.5818, 4);
+    expect(mUnits(0, 400)).toBeCloseTo(0.4, 9);
+    expect(mUnits(0.3, 400)).toBeCloseTo(0.798, 3);
+    // 1M is defined as 5′ at 1 m = 1.454 mm.
+    expect(baseOptotypeHeightMm(1000)).toBeCloseTo(1.454, 3);
+  });
+
+  it("classifies distances into modes", () => {
+    expect(modeForDistance(400)).toBe("near");
+    expect(modeForDistance(300)).toBe("near");
+    expect(modeForDistance(2000)).toBe("distance");
   });
 });

@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { PrimaryButton, SecondaryLink, Shell } from "@/components/Shell";
 import { useRequireStep } from "@/components/useRequireStep";
-import { DISTANCE_OPTIONS } from "@/lib/optometry";
+import { distanceOption } from "@/lib/optometry";
 import { useAppState, type AppState } from "@/state/AppState";
 
 const needsCalibration = (s: AppState) => s.disclaimerAccepted && s.calibration !== null;
@@ -13,7 +13,8 @@ export default function ChecklistPage() {
   const ready = useRequireStep(needsCalibration, "/calibrate");
   const { state, dispatch } = useAppState();
   const router = useRouter();
-  const distance = DISTANCE_OPTIONS.find((d) => d.mm === state.distanceMm)!;
+  const distance = distanceOption(state.distanceMm);
+  const near = distance.mode === "near";
 
   const items = [
     { id: "light", title: "The room is well lit", body: "Even, bright room lighting — avoid testing in the dark." },
@@ -32,21 +33,39 @@ export default function ChecklistPage() {
       title: "There is no glare or reflection on the screen",
       body: "No window or lamp behind you reflecting on the display, and no bright light directly behind the screen.",
     },
-    {
-      id: "distance",
-      title: `I have measured ${distance.metricLabel} (${distance.imperialLabel}) from the screen`,
-      body: "Mark the spot on the floor. The screen should be at eye level and facing you squarely.",
-    },
-    {
-      id: "correction",
-      title: "I am wearing my usual distance glasses or contact lenses (if any)",
-      body: "To screen your uncorrected vision, remove them — but note this when reading your results.",
-    },
-    {
-      id: "control",
-      title: "I can answer from my testing position",
-      body: "Use a Bluetooth keyboard, a presenter remote, or ask a helper standing at the screen to press the buttons for you.",
-    },
+    near
+      ? {
+          id: "distance",
+          title: `I have measured ${distance.metricLabel} (${distance.imperialLabel}) from my eyes to the screen`,
+          body: "Check with a ruler or tape measure, then keep that distance for the whole test. Resting your elbow on a table helps keep it steady. Never bring the phone closer to see better.",
+        }
+      : {
+          id: "distance",
+          title: `I have measured ${distance.metricLabel} (${distance.imperialLabel}) from the screen`,
+          body: "Mark the spot on the floor. The screen should be at eye level and facing you squarely.",
+        },
+    near
+      ? {
+          id: "correction",
+          title: "I am wearing my usual reading glasses or contact lenses (if any)",
+          body: "With multifocals, look through the reading part. To screen uncorrected near vision, remove them and note this when reading your results.",
+        }
+      : {
+          id: "correction",
+          title: "I am wearing my usual distance glasses or contact lenses (if any)",
+          body: "To screen your uncorrected vision, remove them, and note this when reading your results.",
+        },
+    near
+      ? {
+          id: "control",
+          title: "I am holding the phone upright, straight in front of my eyes",
+          body: "Hold it in portrait, at eye level and facing you squarely, not tilted. Cover the other eye with your free palm and answer with your thumb.",
+        }
+      : {
+          id: "control",
+          title: "I can answer from my testing position",
+          body: "Use a Bluetooth keyboard, a presenter remote, or ask a helper standing at the screen to press the buttons for you.",
+        },
   ];
 
   const [checked, setChecked] = useState<Record<string, boolean>>({});
@@ -84,13 +103,21 @@ export default function ChecklistPage() {
         </ul>
         <div className="max-w-3xl rounded-xl bg-slate-100 p-4 text-sm text-slate-700">
           <p className="font-semibold">Controls during the test</p>
-          <p className="mt-1">
-            Arrow keys <kbd className="rounded border bg-white px-1">↑</kbd>{" "}
-            <kbd className="rounded border bg-white px-1">↓</kbd> <kbd className="rounded border bg-white px-1">←</kbd>{" "}
-            <kbd className="rounded border bg-white px-1">→</kbd> answer the direction the E&apos;s bars point.{" "}
-            <kbd className="rounded border bg-white px-1">Space</kbd> means &ldquo;unsure&rdquo;. <kbd className="rounded border bg-white px-1">Esc</kbd>{" "}
-            pauses. Never squint or lean forward.
-          </p>
+          {near ? (
+            <p className="mt-1">
+              Tap the arrow that matches the direction the E&apos;s bars point, or swipe anywhere on the white area in
+              that direction. Tap <strong>Unsure</strong> if you cannot tell. Never squint or move the phone closer.
+            </p>
+          ) : (
+            <p className="mt-1">
+              Arrow keys <kbd className="rounded border bg-white px-1">↑</kbd>{" "}
+              <kbd className="rounded border bg-white px-1">↓</kbd>{" "}
+              <kbd className="rounded border bg-white px-1">←</kbd>{" "}
+              <kbd className="rounded border bg-white px-1">→</kbd> answer the direction the E&apos;s bars point.{" "}
+              <kbd className="rounded border bg-white px-1">Space</kbd> means &ldquo;unsure&rdquo;.{" "}
+              <kbd className="rounded border bg-white px-1">Esc</kbd> pauses. Never squint or lean forward.
+            </p>
+          )}
         </div>
         <div className="flex flex-wrap justify-between gap-4">
           <SecondaryLink href="/setup">Back</SecondaryLink>

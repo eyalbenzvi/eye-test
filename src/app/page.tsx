@@ -12,11 +12,11 @@ const STEPS = [
   },
   {
     title: "Set up your space",
-    body: "Choose a viewing distance of 2 m or 3 m, set brightness to maximum and make sure the room is well lit.",
+    body: "Test near vision with the phone in your hand at 30–40 cm, or distance vision from 2–3 m. Set brightness to maximum in a well-lit room.",
   },
   {
     title: "Test each eye",
-    body: "Cover one eye at a time and report which way the letter E points, using the on-screen buttons or the arrow keys.",
+    body: "Cover one eye at a time and report which way the letter E points: tap or swipe on the screen, or use the arrow keys.",
   },
   {
     title: "Review your results",
@@ -38,7 +38,7 @@ export default function WelcomePage() {
             Distance visual acuity self-screening
           </p>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-            Check how sharply each eye sees at a distance — accurately, at home.
+            Check how sharply each eye sees, up close or across the room, accurately and at home.
           </h1>
           <p className="text-lg text-slate-600">
             AcuityCheck uses a physically calibrated Tumbling&nbsp;E chart, sized with the same optics formulas used
