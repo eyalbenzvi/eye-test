@@ -1,24 +1,25 @@
 "use client";
 
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useReducer,
-  type ReactNode,
-} from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, type ReactNode } from "react";
+import { currentDeviceInfo, estimateScale, type DeviceClass } from "@/lib/calibration";
 import type { TestDistance } from "@/lib/optometry";
 import type { EyeScore } from "@/lib/testEngine";
 
 export type Eye = "right" | "left";
 
+/** The test runs hand-held at reading distance. */
+export const TEST_DISTANCE_MM: TestDistance = 400;
+
 export interface Calibration {
-  /** Calibrated CSS pixels per physical millimetre. */
+  /** CSS pixels per physical millimetre. */
   pxPerMm: number;
+  /** "card": matched by the user against a bank card. "estimated": inferred from the device type. */
+  method: "card" | "estimated";
+  /** Typical relative error of the scale (0 for a card match). */
+  typicalError: number;
+  deviceClass?: DeviceClass;
   /** On-screen card width (CSS px) the user matched to the physical card. */
-  cardWidthPx: number;
+  cardWidthPx?: number;
   /** Device pixel ratio at calibration time; a change implies browser zoom or a different display. */
   devicePixelRatio: number;
   screenWidth: number;
@@ -38,59 +39,35 @@ export interface TestResults {
 
 export interface AppState {
   hydrated: boolean;
-  disclaimerAccepted: boolean;
+  /** Optional card calibration; when absent the screen scale is estimated. */
   calibration: Calibration | null;
-  distanceMm: TestDistance;
-  crowding: boolean;
-  checklistConfirmed: boolean;
   results: TestResults | null;
 }
 
 type Action =
   | { type: "hydrate"; state: Partial<AppState> }
-  | { type: "acceptDisclaimer" }
   | { type: "setCalibration"; calibration: Calibration }
-  | { type: "setDistance"; distanceMm: TestDistance }
-  | { type: "setCrowding"; crowding: boolean }
-  | { type: "setChecklist"; confirmed: boolean }
-  | { type: "startTest" }
+  | { type: "startTest"; calibration: Calibration }
   | { type: "recordEye"; eye: Eye; score: EyeScore };
 
-const STORAGE_KEY = "acuity-check:v1";
+const STORAGE_KEY = "acuity-check:v2";
 
-const initialState: AppState = {
-  hydrated: false,
-  disclaimerAccepted: false,
-  calibration: null,
-  distanceMm: 3000,
-  crowding: true,
-  checklistConfirmed: false,
-  results: null,
-};
+const initialState: AppState = { hydrated: false, calibration: null, results: null };
 
 function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
     case "hydrate":
       return { ...state, ...action.state, hydrated: true };
-    case "acceptDisclaimer":
-      return { ...state, disclaimerAccepted: true };
     case "setCalibration":
       return { ...state, calibration: action.calibration };
-    case "setDistance":
-      return { ...state, distanceMm: action.distanceMm };
-    case "setCrowding":
-      return { ...state, crowding: action.crowding };
-    case "setChecklist":
-      return { ...state, checklistConfirmed: action.confirmed };
     case "startTest":
-      if (!state.calibration) return state;
       return {
         ...state,
         results: {
           startedAt: new Date().toISOString(),
-          distanceMm: state.distanceMm,
-          crowding: state.crowding,
-          calibration: state.calibration,
+          distanceMm: TEST_DISTANCE_MM,
+          crowding: true,
+          calibration: action.calibration,
         },
       };
     case "recordEye": {
@@ -105,7 +82,8 @@ function reducer(state: AppState, action: Action): AppState {
 interface AppContextValue {
   state: AppState;
   dispatch: React.Dispatch<Action>;
-  acceptDisclaimer: () => void;
+  /** Begin a fresh two-eye test with the best available screen scale. */
+  startTest: () => void;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -121,10 +99,6 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     } catch {
       // Storage unavailable (private mode) or corrupt: start fresh.
     }
-    if (stored.distanceMm === undefined && window.matchMedia?.("(pointer: coarse)").matches) {
-      // Touch devices default to the hand-held near test.
-      stored.distanceMm = 400;
-    }
     dispatch({ type: "hydrate", state: stored });
   }, []);
 
@@ -137,9 +111,15 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     }
   }, [state]);
 
-  const acceptDisclaimer = useCallback(() => dispatch({ type: "acceptDisclaimer" }), []);
-  const value = useMemo(() => ({ state, dispatch, acceptDisclaimer }), [state, acceptDisclaimer]);
+  const card = state.calibration;
+  const startTest = useCallback(() => {
+    dispatch({
+      type: "startTest",
+      calibration: card && calibrationMatchesDisplay(card) ? card : estimatedCalibration(),
+    });
+  }, [card]);
 
+  const value = useMemo(() => ({ state, dispatch, startTest }), [state, startTest]);
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }
 
@@ -149,7 +129,31 @@ export function useAppState(): AppContextValue {
   return ctx;
 }
 
-/** Whether the stored calibration still matches the current display (no zoom / display change). */
+function displaySnapshot() {
+  return {
+    devicePixelRatio: window.devicePixelRatio || 1,
+    screenWidth: window.screen.width,
+    screenHeight: window.screen.height,
+    calibratedAt: new Date().toISOString(),
+  };
+}
+
+export function estimatedCalibration(): Calibration {
+  const est = estimateScale(currentDeviceInfo());
+  return {
+    pxPerMm: est.pxPerMm,
+    method: "estimated",
+    typicalError: est.typicalError,
+    deviceClass: est.deviceClass,
+    ...displaySnapshot(),
+  };
+}
+
+export function cardCalibration(cardWidthPx: number, cardWidthMm: number): Calibration {
+  return { pxPerMm: cardWidthPx / cardWidthMm, method: "card", typicalError: 0, cardWidthPx, ...displaySnapshot() };
+}
+
+/** Whether a stored calibration still matches the current display (no zoom / display change). */
 export function calibrationMatchesDisplay(calibration: Calibration | null): boolean {
   if (!calibration || typeof window === "undefined") return false;
   // Compare orientation-independent dimensions so rotating a phone does not invalidate calibration.

@@ -1,53 +1,18 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-const STEPS = [
-  { key: "welcome", label: "Welcome", href: "/" },
-  { key: "calibrate", label: "Calibrate", href: "/calibrate" },
-  { key: "setup", label: "Distance", href: "/setup" },
-  { key: "checklist", label: "Checklist", href: "/checklist" },
-  { key: "test", label: "Test", href: "/test" },
-  { key: "results", label: "Results", href: "/results" },
-] as const;
-
-export type StepKey = (typeof STEPS)[number]["key"];
-
-export function Shell({ step, children }: { step: StepKey; children: ReactNode }) {
-  const current = STEPS.findIndex((s) => s.key === step);
+export function Shell({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-full flex-col">
       <header className="border-b border-slate-200 bg-white print:hidden">
-        <div className="mx-auto flex max-w-5xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mx-auto flex max-w-3xl items-center px-4 py-3">
           <Link href="/" className="flex items-center gap-2 text-lg font-bold tracking-tight text-clinic-900">
             <Logo />
             AcuityCheck
           </Link>
-          <nav aria-label="Progress">
-            <ol className="flex flex-wrap items-center gap-1 text-xs font-medium sm:text-sm">
-              {STEPS.map((s, i) => (
-                <li key={s.key} className="flex items-center gap-1">
-                  <span
-                    aria-current={i === current ? "step" : undefined}
-                    className={
-                      i === current
-                        ? "rounded-full bg-clinic-600 px-2.5 py-1 text-white"
-                        : i < current
-                          ? "rounded-full bg-clinic-100 px-2.5 py-1 text-clinic-700"
-                          : "rounded-full px-2.5 py-1 text-slate-400"
-                    }
-                  >
-                    {i + 1}. {s.label}
-                  </span>
-                </li>
-              ))}
-            </ol>
-          </nav>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:py-12">{children}</main>
-      <footer className="border-t border-slate-200 py-6 text-center text-xs text-slate-500 print:hidden">
-        For self-screening only. Not a substitute for a professional eye examination.
-      </footer>
+      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:py-10">{children}</main>
     </div>
   );
 }

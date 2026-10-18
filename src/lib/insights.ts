@@ -143,7 +143,7 @@ export function recommend(right: EyeScore, left: EyeScore, mode: TestMode = "dis
 
   if (near) {
     points.push(
-      "A near test cannot detect nearsightedness (myopia), because nearsighted eyes often see well up close. Use the 2–3 m test to screen distance vision.",
+      "A near test cannot detect nearsightedness (myopia), because nearsighted eyes often see well up close. Distance vision needs a separate check.",
     );
   }
 

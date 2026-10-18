@@ -4,43 +4,30 @@ import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 import { CardCalibrator } from "@/components/CardCalibrator";
 import { PrimaryButton, SecondaryLink, Shell } from "@/components/Shell";
-import { useRequireStep } from "@/components/useRequireStep";
 import { ID1_CARD } from "@/lib/optometry";
-import { calibrationMatchesDisplay, useAppState, type AppState } from "@/state/AppState";
-
-const needsDisclaimer = (s: AppState) => s.disclaimerAccepted;
+import { calibrationMatchesDisplay, cardCalibration, estimatedCalibration, useAppState } from "@/state/AppState";
 
 export default function CalibratePage() {
-  const ready = useRequireStep(needsDisclaimer, "/");
   const { state, dispatch } = useAppState();
   const router = useRouter();
   const [widthPx, setWidthPx] = useState<number | null>(null);
   const [verify, setVerify] = useState(false);
   const onChange = useCallback((w: number) => setWidthPx(w), []);
 
-  if (!ready) return null;
+  // Wait for stored state; the calibrator's starting size also needs `window`.
+  if (!state.hydrated) return null;
 
   const existing = state.calibration && calibrationMatchesDisplay(state.calibration) ? state.calibration : null;
   const pxPerMm = widthPx ? widthPx / ID1_CARD.widthMm : null;
 
   const save = () => {
     if (!widthPx) return;
-    dispatch({
-      type: "setCalibration",
-      calibration: {
-        pxPerMm: widthPx / ID1_CARD.widthMm,
-        cardWidthPx: widthPx,
-        devicePixelRatio: window.devicePixelRatio || 1,
-        screenWidth: window.screen.width,
-        screenHeight: window.screen.height,
-        calibratedAt: new Date().toISOString(),
-      },
-    });
-    router.push("/setup");
+    dispatch({ type: "setCalibration", calibration: cardCalibration(widthPx, ID1_CARD.widthMm) });
+    router.push("/");
   };
 
   return (
-    <Shell step="calibrate">
+    <Shell>
       <div className="space-y-8">
         <header className="max-w-3xl space-y-3">
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Calibrate your screen</h1>
@@ -64,7 +51,10 @@ export default function CalibratePage() {
           )}
         </header>
 
-        <CardCalibrator initialWidthPx={existing?.cardWidthPx} onChange={onChange} />
+        <CardCalibrator
+          initialWidthPx={existing?.cardWidthPx ?? estimatedCalibration().pxPerMm * ID1_CARD.widthMm}
+          onChange={onChange}
+        />
 
         <div className="mx-auto max-w-xl space-y-3">
           <button
@@ -92,7 +82,7 @@ export default function CalibratePage() {
         </div>
 
         <div className="flex flex-wrap justify-between gap-4">
-          <SecondaryLink href="/">Back</SecondaryLink>
+          <SecondaryLink href="/">Cancel</SecondaryLink>
           <PrimaryButton onClick={save} disabled={!widthPx}>
             Save calibration
           </PrimaryButton>

@@ -1,8 +1,6 @@
 import { createRoot } from "react-dom/client";
 import WelcomePage from "@/app/page";
 import CalibratePage from "@/app/calibrate/page";
-import SetupPage from "@/app/setup/page";
-import ChecklistPage from "@/app/checklist/page";
 import TestPage from "@/app/test/page";
 import ResultsPage from "@/app/results/page";
 import { AppStateProvider } from "@/state/AppState";
@@ -11,8 +9,6 @@ import { usePath } from "./router";
 const ROUTES: Record<string, () => React.JSX.Element | null> = {
   "/": WelcomePage,
   "/calibrate": CalibratePage,
-  "/setup": SetupPage,
-  "/checklist": ChecklistPage,
   "/test": TestPage,
   "/results": ResultsPage,
 };
