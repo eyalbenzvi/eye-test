@@ -1,0 +1,83 @@
+/**
+ * Display-capability analysis: decides which LogMAR levels can be rendered
+ * faithfully on the current screen for a given calibration and distance.
+ */
+
+import { LOGMAR_LEVELS, optotypeHeightMm } from "./optometry";
+
+/**
+ * Minimum stroke width, in physical device pixels, for an optotype to be
+ * rendered with recognisable geometry. Below this the 1′ detail of the E
+ * collapses into anti-aliasing blur and the level is excluded.
+ */
+export const MIN_STROKE_DEVICE_PX = 1.5;
+
+/** Crowding bars: gap between optotype and bar, and bar thickness, as fractions of optotype height. */
+export const CROWDING_GAP_RATIO = 0.5;
+export const CROWDING_BAR_RATIO = 0.2;
+
+/** Total edge length of an optotype including its crowding frame, as a multiple of optotype height. */
+export const CROWDED_EXTENT_RATIO = 1 + 2 * (CROWDING_GAP_RATIO + CROWDING_BAR_RATIO);
+
+export interface RenderEnvironment {
+  pxPerMm: number;
+  devicePixelRatio: number;
+  /** Space available for the stimulus, in CSS px. */
+  availableWidthPx: number;
+  availableHeightPx: number;
+}
+
+export interface LevelRenderInfo {
+  logMAR: number;
+  heightMm: number;
+  heightCssPx: number;
+  strokeDevicePx: number;
+  fits: boolean;
+  resolvable: boolean;
+}
+
+export function analyseLevels(distanceMm: number, env: RenderEnvironment): LevelRenderInfo[] {
+  const maxPx = Math.min(env.availableWidthPx, env.availableHeightPx);
+  return LOGMAR_LEVELS.map((logMAR) => {
+    const heightMm = optotypeHeightMm(logMAR, distanceMm);
+    const heightCssPx = heightMm * env.pxPerMm;
+    const strokeDevicePx = (heightCssPx / 5) * env.devicePixelRatio;
+    return {
+      logMAR,
+      heightMm,
+      heightCssPx,
+      strokeDevicePx,
+      fits: heightCssPx <= maxPx,
+      resolvable: strokeDevicePx >= MIN_STROKE_DEVICE_PX,
+    };
+  });
+}
+
+/** Contiguous, descending list of levels that both fit on screen and are resolvable. */
+export function testableLevels(info: LevelRenderInfo[]): number[] {
+  return info.filter((l) => l.fits && l.resolvable).map((l) => l.logMAR);
+}
+
+/**
+ * Snap the optotype size to whole device pixels when doing so keeps the size
+ * error small. When the 1′ stroke unit lands on whole device pixels every edge
+ * of the E is pixel-aligned (perfectly crisp); otherwise we keep the exact
+ * geometric size and accept anti-aliased edges, because accuracy wins.
+ *
+ * Returns the size in CSS px to render.
+ */
+export function snapOptotypeSize(
+  heightCssPx: number,
+  devicePixelRatio: number,
+  maxRelativeError = 0.025,
+): { sizeCssPx: number; pixelAligned: boolean } {
+  const unitDevice = (heightCssPx / 5) * devicePixelRatio;
+  const snappedUnit = Math.round(unitDevice);
+  if (snappedUnit >= 1) {
+    const snappedCss = (snappedUnit * 5) / devicePixelRatio;
+    if (Math.abs(snappedCss - heightCssPx) / heightCssPx <= maxRelativeError) {
+      return { sizeCssPx: snappedCss, pixelAligned: true };
+    }
+  }
+  return { sizeCssPx: heightCssPx, pixelAligned: false };
+}

@@ -1,0 +1,37 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body {
+  background: #ffffff;
+  color: #0f172a;
+}
+
+/* The test canvas must never animate: no transitions, no smooth scrolling. */
+.no-motion,
+.no-motion * {
+  transition: none !important;
+  animation: none !important;
+  scroll-behavior: auto !important;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 14mm;
+  }
+  html,
+  body {
+    background: #ffffff !important;
+  }
+  .print-card {
+    box-shadow: none !important;
+    border-color: #000000 !important;
+    break-inside: avoid;
+  }
+}
