@@ -16,6 +16,9 @@ import { DISTANCE_OPTIONS, formatLogMAR, toNotations } from "@/lib/optometry";
 import type { EyeScore } from "@/lib/testEngine";
 import { useAppState, type AppState } from "@/state/AppState";
 
+/** The single-file build runs in hosts where the print dialog is unavailable. */
+const STANDALONE = process.env.NEXT_PUBLIC_STANDALONE === "1";
+
 const needsResults = (s: AppState) => !!s.results?.right && !!s.results?.left;
 
 const SEVERITY_STYLE: Record<Severity, string> = {
@@ -82,7 +85,11 @@ export default function ResultsPage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-3 print:hidden">
-            <PrimaryButton onClick={() => window.print()}>Print / Save as PDF</PrimaryButton>
+            {STANDALONE ? (
+              <p className="max-w-xs text-sm text-slate-500">Take a screenshot to keep a copy of this report.</p>
+            ) : (
+              <PrimaryButton onClick={() => window.print()}>Print / Save as PDF</PrimaryButton>
+            )}
           </div>
         </header>
 
