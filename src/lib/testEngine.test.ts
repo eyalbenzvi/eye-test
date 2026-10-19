@@ -55,14 +55,14 @@ describe("randomDirection", () => {
 });
 
 describe("engine", () => {
-  it.each([1.0, 0.5, 0.3, 0.0, -0.1])("perfect observer with threshold %s scores exactly", (t) => {
+  it.each([1.0, 0.5, 0.3, 0.1])("observer with threshold %s scores exactly", (t) => {
     const s = scoreEngine(run(t), config);
     expect(s.logMAR).toBeCloseTo(t, 5);
   });
 
-  it("perfect at the smallest level is flagged as better than range", () => {
-    const s = scoreEngine(run(-0.2), config);
-    expect(s.logMAR).toBeCloseTo(-0.2, 5);
+  it("answering everything correctly scores exactly 6/6", () => {
+    const s = scoreEngine(run(-1), config);
+    expect(s.logMAR).toBe(0);
     expect(s.betterThanRange).toBe(true);
   });
 

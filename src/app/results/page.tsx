@@ -54,14 +54,20 @@ function displayScore(score: EyeScore, distanceMm: number) {
     };
   }
   const n = toNotations(score.logMAR);
-  const q = score.betterThanRange ? "≥ " : "";
+  // Reading the 6/6 line is the top of the chart; only a screen that stopped short gets a "≥".
+  const capped = score.betterThanRange && score.smallestLevel > 0;
+  const q = capped ? "≥ " : "";
   return {
-    mUnits: `${score.betterThanRange ? "≤ " : ""}${m(n.logMAR)}`,
-    logMAR: `${score.betterThanRange ? "≤ " : ""}${formatLogMAR(n.logMAR)}`,
+    mUnits: `${capped ? "≤ " : ""}${m(n.logMAR)}`,
+    logMAR: `${capped ? "≤ " : ""}${formatLogMAR(n.logMAR)}`,
     decimal: `${q}${n.decimal.toFixed(2)}`,
     metric: `${q}${n.snellenMetric}`,
     imperial: `${q}${n.snellenImperial}`,
-    note: score.betterThanRange ? "Read even the smallest symbol this screen could show." : null,
+    note: capped
+      ? "Read even the smallest symbol this screen could show."
+      : score.betterThanRange
+        ? "Read every symbol, including the 6/6 line."
+        : null,
   };
 }
 

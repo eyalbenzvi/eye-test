@@ -24,10 +24,10 @@ describe("optotype geometry", () => {
     expect(optotypeHeightMm(-0.2, 3000) / optotypeHeightMm(-0.1, 3000)).toBeCloseTo(10 ** -0.1, 9);
   });
 
-  it("defines 13 levels from +1.0 to -0.2", () => {
-    expect(LOGMAR_LEVELS).toHaveLength(13);
+  it("defines 11 levels from +1.0 down to 6/6 (0.0)", () => {
+    expect(LOGMAR_LEVELS).toHaveLength(11);
     expect(LOGMAR_LEVELS[0]).toBe(1);
-    expect(LOGMAR_LEVELS[12]).toBe(-0.2);
+    expect(LOGMAR_LEVELS[10]).toBe(0);
     expect(LOGMAR_LEVELS).toContain(0.3);
   });
 });

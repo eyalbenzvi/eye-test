@@ -18,7 +18,12 @@ export const ID1_CARD = {
 export const BASE_OPTOTYPE_ARCMIN = 5;
 
 export const LOGMAR_MAX = 1.0;
-export const LOGMAR_MIN = -0.2;
+/**
+ * The chart ends at the 6/6 line: answering every symbol correctly scores
+ * exactly 6/6 (0.0 LogMAR), the reference for normal vision. Finer lines
+ * would also demand finer pixels than many screens have.
+ */
+export const LOGMAR_MIN = 0.0;
 export const LOGMAR_STEP = 0.1;
 
 export type TestMode = "distance" | "near";
@@ -53,7 +58,7 @@ export function roundTo(value: number, decimals: number): number {
   return Math.round((value + Number.EPSILON) * f) / f;
 }
 
-/** All LogMAR chart levels from largest (+1.0) to smallest (-0.2). */
+/** All LogMAR chart levels from largest (+1.0) to smallest (0.0 = 6/6). */
 export const LOGMAR_LEVELS: readonly number[] = (() => {
   const levels: number[] = [];
   const count = Math.round((LOGMAR_MAX - LOGMAR_MIN) / LOGMAR_STEP);

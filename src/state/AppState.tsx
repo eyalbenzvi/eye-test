@@ -128,12 +128,21 @@ export function useAppState(): AppContextValue {
 export interface TestPlan {
   calibration: Calibration;
   distanceMm: number;
+  /** The size estimate for this device is too loose (computers, tablets): a card calibration is required. */
+  needsCalibration: boolean;
 }
+
+/** Largest estimate error accepted without a card calibration (phones are ±4–6%). */
+const MAX_ESTIMATE_ERROR = 0.1;
 
 /** Best available screen scale, and the nearest distance at which this screen can draw the small symbols. */
 export function planTest(card: Calibration | null): TestPlan {
   const calibration = card && calibrationMatchesDisplay(card) ? card : estimatedCalibration();
-  return { calibration, distanceMm: chooseNearDistance(calibration.pxPerMm, window.devicePixelRatio || 1) };
+  return {
+    calibration,
+    distanceMm: chooseNearDistance(calibration.pxPerMm, window.devicePixelRatio || 1),
+    needsCalibration: calibration.method === "estimated" && calibration.typicalError > MAX_ESTIMATE_ERROR,
+  };
 }
 
 function displaySnapshot() {

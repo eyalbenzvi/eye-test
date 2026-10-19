@@ -12,7 +12,7 @@ describe("rendering analysis", () => {
     const levels = testableLevels(info);
     // 1.0 LogMAR at 3 m = 43.6 mm = 165 px, does not fit in 120 px.
     expect(levels[0]).toBeLessThan(1);
-    expect(levels.at(-1)).toBe(-0.2);
+    expect(levels.at(-1)).toBe(0);
   });
 
   it("snaps to whole device pixels only within tolerance", () => {
@@ -27,12 +27,11 @@ describe("rendering analysis", () => {
 
 describe("phone near-test range", () => {
   // 2× iPhone (163 CSS ppi) at 40 cm: the 6/6 stroke is ≈1.5 device px and must stay testable.
-  it("includes 6/6 and better on a 2× phone at 40 cm", () => {
+  it("includes 6/6 on a 2× phone at 40 cm", () => {
     const levels = testableLevels(
       analyseLevels(400, { pxPerMm: 163 / 25.4, devicePixelRatio: 2, availableWidthPx: 300, availableHeightPx: 300 }),
     );
-    expect(levels).toContain(0);
-    expect(levels.at(-1)).toBeLessThanOrEqual(-0.1);
+    expect(levels.at(-1)).toBe(0);
   });
 });
 
