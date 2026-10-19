@@ -5,17 +5,27 @@ import { useRouter } from "next/navigation";
 import { DISCLAIMER, Shell } from "@/components/Shell";
 import { useAppState } from "@/state/AppState";
 
-const TIPS = [
-  {
-    title: "Hold the phone 40 cm away",
-    body: "About the length from your elbow to your fingertips. Keep it there; don't bring it closer.",
-  },
-  { title: "Bright room, bright screen", body: "Turn screen brightness up and switch off night / blue-light mode." },
-  { title: "Glasses on", body: "Wear your reading glasses if you normally use them." },
-];
+/** Everyday way to judge each viewing distance the app may ask for. */
+const DISTANCE_HINT: Record<number, string> = {
+  400: "About the length from your elbow to your fingertips.",
+  600: "About an outstretched arm with the elbow slightly bent.",
+  800: "Just beyond the fingertips of your outstretched arm.",
+};
+
+function tips(distanceMm: number) {
+  const cm = distanceMm / 10;
+  return [
+    {
+      title: `Keep the screen ${cm} cm from your eyes`,
+      body: `${DISTANCE_HINT[distanceMm] ?? ""} Keep that distance; don't lean in.`,
+    },
+    { title: "Bright room, bright screen", body: "Turn screen brightness up and switch off night / blue-light mode." },
+    { title: "Glasses on", body: "Wear your reading glasses if you normally use them." },
+  ];
+}
 
 export default function StartPage() {
-  const { state, startTest } = useAppState();
+  const { state, startTest, plan } = useAppState();
   const router = useRouter();
 
   return (
@@ -29,7 +39,7 @@ export default function StartPage() {
         </header>
 
         <ul className="flex flex-col gap-3">
-          {TIPS.map((t) => (
+          {tips(plan?.distanceMm ?? 400).map((t) => (
             <li key={t.title} className="rounded-2xl bg-slate-100 p-4">
               <p className="font-semibold text-slate-900">{t.title}</p>
               <p className="text-sm text-slate-600">{t.body}</p>

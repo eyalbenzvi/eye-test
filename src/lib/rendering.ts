@@ -84,3 +84,28 @@ export function snapOptotypeSize(
   }
   return { sizeCssPx: heightCssPx, pixelAligned: false };
 }
+
+/** Hand-held / desk viewing distances the app may ask for, nearest first. */
+export const NEAR_DISTANCES_MM = [400, 600, 800] as const;
+
+/** Smallest stroke (device px) of a level at a distance on this screen. */
+function strokeDevicePx(logMAR: number, distanceMm: number, pxPerMm: number, dpr: number): number {
+  return ((optotypeHeightMm(logMAR, distanceMm) * pxPerMm) / 5) * dpr;
+}
+
+/**
+ * Pick the nearest viewing distance at which this screen can still draw the
+ * small levels sharply. Coarse screens (e.g. a 1× computer monitor) cannot
+ * draw a 6/6 E at 40 cm, so the user is moved back instead: the optotype then
+ * gets physically larger and spans more pixels for the same visual angle.
+ * Prefers a distance reaching −0.1 LogMAR, then one reaching 0.0.
+ */
+export function chooseNearDistance(pxPerMm: number, devicePixelRatio: number): number {
+  for (const target of [-0.1, 0]) {
+    const d = NEAR_DISTANCES_MM.find(
+      (mm) => strokeDevicePx(target, mm, pxPerMm, devicePixelRatio) >= MIN_STROKE_DEVICE_PX,
+    );
+    if (d !== undefined) return d;
+  }
+  return NEAR_DISTANCES_MM[NEAR_DISTANCES_MM.length - 1];
+}

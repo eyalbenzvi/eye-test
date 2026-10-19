@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { DISCLAIMER, PrimaryButton, Shell } from "@/components/Shell";
@@ -13,7 +14,7 @@ import {
   type Severity,
   type Urgency,
 } from "@/lib/insights";
-import { distanceOption, formatLogMAR, mUnits, toNotations, type TestMode } from "@/lib/optometry";
+import { describeDistance, formatLogMAR, mUnits, toNotations, type TestMode } from "@/lib/optometry";
 import type { EyeScore } from "@/lib/testEngine";
 import { useAppState, type AppState } from "@/state/AppState";
 
@@ -79,7 +80,7 @@ export default function ResultsPage() {
 
   if (!ready || !state.results?.right || !state.results.left) return null;
   const { right, left, calibration, distanceMm, completedAt, startedAt } = state.results;
-  const distance = distanceOption(distanceMm);
+  const distance = describeDistance(distanceMm);
   const mode = distance.mode;
   const near = mode === "near";
   const io = interocular(right, left);
@@ -116,6 +117,16 @@ export default function ResultsPage() {
           <p className="text-xs text-slate-500">
             Symbol sizes were estimated for your device (typically within ±{Math.round(calibration.typicalError * 100)}
             %), so treat the result as approximate.
+            {calibration.typicalError > 0.1 && (
+              <>
+                {" "}
+                Screen sizes vary a lot on this kind of device.{" "}
+                <Link href="/calibrate" className="font-semibold text-clinic-700 underline underline-offset-2">
+                  Calibrate with a bank card
+                </Link>{" "}
+                for a reliable result.
+              </>
+            )}
           </p>
         )}
 

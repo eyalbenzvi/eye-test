@@ -187,7 +187,7 @@ export default function TestPage() {
             </p>
             <h1 className="text-4xl font-black">Cover your {eye === "right" ? "LEFT" : "RIGHT"} eye</h1>
             <p className="max-w-sm text-lg text-slate-700">
-              Use your palm, without pressing. Show which way the E points: tap an arrow or swipe. Not sure? Tap
+              Stay {distanceMm / 10} cm from the screen. Use your palm, without pressing. Show which way the E points: tap an arrow or swipe. Not sure? Tap
               Unsure.
             </p>
             {error && <p className="max-w-sm rounded-lg bg-red-100 p-3 text-sm text-red-900">{error}</p>}

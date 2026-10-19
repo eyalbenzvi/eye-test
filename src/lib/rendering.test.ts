@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { analyseLevels, snapOptotypeSize, testableLevels } from "./rendering";
+import { analyseLevels, chooseNearDistance, snapOptotypeSize, testableLevels } from "./rendering";
 
 describe("rendering analysis", () => {
   it("excludes levels that do not fit or cannot be resolved", () => {
@@ -33,5 +33,23 @@ describe("phone near-test range", () => {
     );
     expect(levels).toContain(0);
     expect(levels.at(-1)).toBeLessThanOrEqual(-0.1);
+  });
+});
+
+describe("viewing distance choice", () => {
+  it("keeps phones at 40 cm", () => {
+    expect(chooseNearDistance(153 / 25.4, 3)).toBe(400);
+    expect(chooseNearDistance(163 / 25.4, 2)).toBe(400);
+    expect(chooseNearDistance(148 / 25.4, 2.25)).toBe(400);
+  });
+
+  it("moves a 1x computer screen back far enough to draw 6/6", () => {
+    const pxPerMm = 110 / 25.4;
+    const d = chooseNearDistance(pxPerMm, 1);
+    expect(d).toBeGreaterThan(400);
+    const levels = testableLevels(
+      analyseLevels(d, { pxPerMm, devicePixelRatio: 1, availableWidthPx: 1000, availableHeightPx: 600 }),
+    );
+    expect(levels).toContain(0);
   });
 });

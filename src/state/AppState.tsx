@@ -2,13 +2,11 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, type ReactNode } from "react";
 import { currentDeviceInfo, estimateScale, type DeviceClass } from "@/lib/calibration";
-import type { TestDistance } from "@/lib/optometry";
+import { chooseNearDistance } from "@/lib/rendering";
 import type { EyeScore } from "@/lib/testEngine";
 
 export type Eye = "right" | "left";
 
-/** The test runs hand-held at reading distance. */
-export const TEST_DISTANCE_MM: TestDistance = 400;
 
 export interface Calibration {
   /** CSS pixels per physical millimetre. */
@@ -32,7 +30,7 @@ export interface TestResults {
   left?: EyeScore;
   startedAt: string;
   completedAt?: string;
-  distanceMm: TestDistance;
+  distanceMm: number;
   crowding: boolean;
   calibration: Calibration;
 }
@@ -47,7 +45,7 @@ export interface AppState {
 type Action =
   | { type: "hydrate"; state: Partial<AppState> }
   | { type: "setCalibration"; calibration: Calibration }
-  | { type: "startTest"; calibration: Calibration }
+  | { type: "startTest"; plan: TestPlan }
   | { type: "recordEye"; eye: Eye; score: EyeScore };
 
 const STORAGE_KEY = "acuity-check:v2";
@@ -65,9 +63,9 @@ function reducer(state: AppState, action: Action): AppState {
         ...state,
         results: {
           startedAt: new Date().toISOString(),
-          distanceMm: TEST_DISTANCE_MM,
+          distanceMm: action.plan.distanceMm,
           crowding: true,
-          calibration: action.calibration,
+          calibration: action.plan.calibration,
         },
       };
     case "recordEye": {
@@ -84,6 +82,8 @@ interface AppContextValue {
   dispatch: React.Dispatch<Action>;
   /** Begin a fresh two-eye test with the best available screen scale. */
   startTest: () => void;
+  /** Screen scale and viewing distance the next test will use (null until hydrated). */
+  plan: TestPlan | null;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -112,14 +112,10 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   }, [state]);
 
   const card = state.calibration;
-  const startTest = useCallback(() => {
-    dispatch({
-      type: "startTest",
-      calibration: card && calibrationMatchesDisplay(card) ? card : estimatedCalibration(),
-    });
-  }, [card]);
+  const plan = useMemo(() => (state.hydrated ? planTest(card) : null), [state.hydrated, card]);
+  const startTest = useCallback(() => dispatch({ type: "startTest", plan: planTest(card) }), [card]);
 
-  const value = useMemo(() => ({ state, dispatch, startTest }), [state, startTest]);
+  const value = useMemo(() => ({ state, dispatch, startTest, plan }), [state, startTest, plan]);
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }
 
@@ -127,6 +123,17 @@ export function useAppState(): AppContextValue {
   const ctx = useContext(AppContext);
   if (!ctx) throw new Error("useAppState must be used inside AppStateProvider");
   return ctx;
+}
+
+export interface TestPlan {
+  calibration: Calibration;
+  distanceMm: number;
+}
+
+/** Best available screen scale, and the nearest distance at which this screen can draw the small symbols. */
+export function planTest(card: Calibration | null): TestPlan {
+  const calibration = card && calibrationMatchesDisplay(card) ? card : estimatedCalibration();
+  return { calibration, distanceMm: chooseNearDistance(calibration.pxPerMm, window.devicePixelRatio || 1) };
 }
 
 function displaySnapshot() {
