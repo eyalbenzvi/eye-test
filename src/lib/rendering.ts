@@ -85,8 +85,8 @@ export function snapOptotypeSize(
   return { sizeCssPx: heightCssPx, pixelAligned: false };
 }
 
-/** Hand-held / desk viewing distances the app may ask for, nearest first. */
-export const NEAR_DISTANCES_MM = [400, 600, 800] as const;
+/** Viewing distances the app may ask for, nearest first: hand-held, desk, then a step back from a monitor. */
+export const NEAR_DISTANCES_MM = [400, 600, 800, 1000, 1250, 1500] as const;
 
 /** Smallest stroke (device px) of a level at a distance on this screen. */
 function strokeDevicePx(logMAR: number, distanceMm: number, pxPerMm: number, dpr: number): number {
@@ -94,18 +94,13 @@ function strokeDevicePx(logMAR: number, distanceMm: number, pxPerMm: number, dpr
 }
 
 /**
- * Pick the nearest viewing distance at which this screen can still draw the
- * small levels sharply. Coarse screens (e.g. a 1× computer monitor) cannot
- * draw a 6/6 E at 40 cm, so the user is moved back instead: the optotype then
- * gets physically larger and spans more pixels for the same visual angle.
- * Prefers a distance reaching −0.1 LogMAR, then one reaching 0.0.
+ * Pick the nearest viewing distance at which this screen can draw a 6/6
+ * (0.0 LogMAR) E sharply. Coarse screens (a large Full HD monitor has ~0.3 mm
+ * pixels) cannot draw it at reading distance, so the user is moved back:
+ * the optotype gets physically larger and spans more pixels for the same
+ * visual angle. Only physical pixel size matters, so browser zoom cannot help.
  */
 export function chooseNearDistance(pxPerMm: number, devicePixelRatio: number): number {
-  for (const target of [-0.1, 0]) {
-    const d = NEAR_DISTANCES_MM.find(
-      (mm) => strokeDevicePx(target, mm, pxPerMm, devicePixelRatio) >= MIN_STROKE_DEVICE_PX,
-    );
-    if (d !== undefined) return d;
-  }
-  return NEAR_DISTANCES_MM[NEAR_DISTANCES_MM.length - 1];
+  const d = NEAR_DISTANCES_MM.find((mm) => strokeDevicePx(0, mm, pxPerMm, devicePixelRatio) >= MIN_STROKE_DEVICE_PX);
+  return d ?? NEAR_DISTANCES_MM[NEAR_DISTANCES_MM.length - 1];
 }

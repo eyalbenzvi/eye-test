@@ -14,13 +14,16 @@ const DISTANCE_HINT: Record<number, string> = {
 
 function tips(distanceMm: number) {
   const cm = distanceMm / 10;
+  const far = distanceMm > 800;
   return [
     {
-      title: `Keep the screen ${cm} cm from your eyes`,
-      body: `${DISTANCE_HINT[distanceMm] ?? ""} Keep that distance; don't lean in.`,
+      title: far ? `Sit ${distanceMm / 1000} m from the screen` : `Keep the screen ${cm} cm from your eyes`,
+      body: far
+        ? "Your screen's pixels are too coarse for a sharp 6/6 symbol any closer. Measure the distance and answer with the keyboard arrow keys."
+        : `${DISTANCE_HINT[distanceMm]} Keep that distance; don't lean in.`,
     },
     { title: "Bright room, bright screen", body: "Turn screen brightness up and switch off night / blue-light mode." },
-    { title: "Glasses on", body: "Wear your reading glasses if you normally use them." },
+    { title: "Glasses on", body: "Wear the glasses you normally use for this distance, if any." },
   ];
 }
 

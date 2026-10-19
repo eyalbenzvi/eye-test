@@ -95,7 +95,7 @@ export default function ResultsPage() {
         <header>
           <h1 className="text-3xl font-bold tracking-tight">Your results</h1>
           <p className="text-sm text-slate-500">
-            {near ? "Near vision" : "Distance vision"} · {date.toLocaleDateString(undefined, { dateStyle: "medium" })}
+            {distance.rangeLabel} at {distance.metricLabel} · {date.toLocaleDateString(undefined, { dateStyle: "medium" })}
           </p>
         </header>
 

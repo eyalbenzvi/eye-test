@@ -53,3 +53,15 @@ describe("viewing distance choice", () => {
     expect(levels).toContain(0);
   });
 });
+
+describe("coarse monitors", () => {
+  it("moves a coarse ~0.3 mm-pixel monitor beyond 1 m", () => {
+    // 4.33 CSS px/mm at 75% zoom (dpr 0.75) = 3.25 physical px/mm.
+    const d = chooseNearDistance(4.33, 0.75);
+    expect(d).toBeGreaterThan(1000);
+    const levels = testableLevels(
+      analyseLevels(d, { pxPerMm: 4.33, devicePixelRatio: 0.75, availableWidthPx: 1400, availableHeightPx: 700 }),
+    );
+    expect(levels).toContain(0);
+  });
+});

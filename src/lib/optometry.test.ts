@@ -65,6 +65,7 @@ describe("near testing", () => {
   it("classifies distances into modes", () => {
     expect(modeForDistance(400)).toBe("near");
     expect(modeForDistance(300)).toBe("near");
+    expect(modeForDistance(1250)).toBe("near");
     expect(modeForDistance(2000)).toBe("distance");
   });
 });

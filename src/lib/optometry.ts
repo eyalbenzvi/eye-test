@@ -23,13 +23,18 @@ export const LOGMAR_STEP = 0.1;
 
 export type TestMode = "distance" | "near";
 
-/** Tests closer than 1 m measure near acuity (accommodation is involved), not distance acuity. */
+/**
+ * Tests closer than 2 m involve focusing (accommodation) and cannot reveal
+ * mild nearsightedness, so they are interpreted as near/intermediate tests.
+ */
 export function modeForDistance(distanceMm: number): TestMode {
-  return distanceMm < 1000 ? "near" : "distance";
+  return distanceMm < 2000 ? "near" : "distance";
 }
 
 export interface DistanceLabel {
   mode: TestMode;
+  /** "Near vision" (reading distance), "Intermediate vision" (arm's length to ~1.5 m) or "Distance vision". */
+  rangeLabel: string;
   metricLabel: string;
   imperialLabel: string;
 }
@@ -38,7 +43,8 @@ export function describeDistance(distanceMm: number): DistanceLabel {
   const metricLabel = distanceMm >= 1000 ? `${distanceMm / 1000} m` : `${distanceMm / 10} cm`;
   const inches = distanceMm / 25.4;
   const imperialLabel = inches >= 60 ? `${Math.round(inches / 12)} feet` : `${Math.round(inches)} inches`;
-  return { mode: modeForDistance(distanceMm), metricLabel, imperialLabel };
+  const rangeLabel = distanceMm < 600 ? "Near vision" : distanceMm < 2000 ? "Intermediate vision" : "Distance vision";
+  return { mode: modeForDistance(distanceMm), rangeLabel, metricLabel, imperialLabel };
 }
 
 /** Round to a fixed number of decimals, avoiding binary float noise (e.g. 0.30000000000000004). */
