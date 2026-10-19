@@ -24,3 +24,14 @@ describe("rendering analysis", () => {
     expect(b.sizeCssPx).toBe(11);
   });
 });
+
+describe("phone near-test range", () => {
+  // 2× iPhone (163 CSS ppi) at 40 cm: the 6/6 stroke is ≈1.5 device px and must stay testable.
+  it("includes 6/6 and better on a 2× phone at 40 cm", () => {
+    const levels = testableLevels(
+      analyseLevels(400, { pxPerMm: 163 / 25.4, devicePixelRatio: 2, availableWidthPx: 300, availableHeightPx: 300 }),
+    );
+    expect(levels).toContain(0);
+    expect(levels.at(-1)).toBeLessThanOrEqual(-0.1);
+  });
+});

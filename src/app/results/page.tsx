@@ -8,6 +8,7 @@ import {
   URGENT_SYMPTOMS,
   classify,
   interocular,
+  isConcern,
   recommend,
   type Severity,
   type Urgency,
@@ -23,6 +24,7 @@ const needsResults = (s: AppState) => !!s.results?.right && !!s.results?.left;
 
 const SEVERITY_STYLE: Record<Severity, string> = {
   normal: "bg-emerald-100 text-emerald-900",
+  limit: "bg-sky-100 text-sky-900",
   borderline: "bg-lime-100 text-lime-900",
   mild: "bg-amber-100 text-amber-900",
   moderate: "bg-orange-100 text-orange-900",
@@ -83,7 +85,7 @@ export default function ResultsPage() {
   const io = interocular(right, left);
   const rec = recommend(right, left, mode);
   const date = new Date(completedAt ?? startedAt);
-  const anyReduced = [right, left].some((s) => classify(s, mode).severity !== "normal");
+  const anyReduced = [right, left].some((s) => isConcern(classify(s, mode).severity));
   const estimated = calibration.method === "estimated";
 
   return (

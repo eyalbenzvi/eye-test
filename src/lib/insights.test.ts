@@ -44,4 +44,12 @@ describe("insights", () => {
     expect(r.urgency).toBe("routine");
     expect(r.points[0]).toMatch(/normal range/);
   });
+
+  it("reading every symbol to the screen limit is not reported as reduced vision", () => {
+    const limited = { ...score(0.1), betterThanRange: true };
+    expect(classify(limited, "near").severity).toBe("limit");
+    const r = recommend(limited, limited, "near");
+    expect(r.urgency).toBe("routine");
+    expect(r.points.join(" ")).not.toMatch(/presbyopia/);
+  });
 });

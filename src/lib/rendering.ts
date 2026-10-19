@@ -7,10 +7,13 @@ import { LOGMAR_LEVELS, optotypeHeightMm } from "./optometry";
 
 /**
  * Minimum stroke width, in physical device pixels, for an optotype to be
- * rendered with recognisable geometry. Below this the 1′ detail of the E
- * collapses into anti-aliasing blur and the level is excluded.
+ * rendered with recognisable geometry. Below one pixel the 1′ detail of the
+ * E collapses into anti-aliasing blur and the level is excluded. At exactly
+ * one pixel and up, the E keeps its shape (slightly softened edges only lower
+ * contrast, which can make the task marginally harder, never easier). This
+ * matters on 2× phone screens, where the 6/6 stroke at 40 cm is ≈1.5 px.
  */
-export const MIN_STROKE_DEVICE_PX = 1.5;
+export const MIN_STROKE_DEVICE_PX = 1.0;
 
 /** Crowding bars: gap between optotype and bar, and bar thickness, as fractions of optotype height. */
 export const CROWDING_GAP_RATIO = 0.5;

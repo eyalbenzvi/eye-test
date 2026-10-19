@@ -7,7 +7,13 @@
 import { roundTo, type TestMode } from "./optometry";
 import type { EyeScore } from "./testEngine";
 
-export type Severity = "normal" | "borderline" | "mild" | "moderate" | "severe";
+/** "limit": every symbol was read down to the smallest this screen can draw; true acuity may be better. */
+export type Severity = "normal" | "limit" | "borderline" | "mild" | "moderate" | "severe";
+
+/** Whether a classification suggests reduced vision. */
+export function isConcern(severity: Severity): boolean {
+  return severity !== "normal" && severity !== "limit";
+}
 
 export interface Classification {
   severity: Severity;
@@ -28,6 +34,14 @@ export function classify(score: EyeScore, mode: TestMode = "distance"): Classifi
       severity: "severe",
       label: "Severely reduced",
       description: "Could not reliably identify the largest symbols. This warrants prompt professional assessment.",
+    };
+  }
+  if (score.betterThanRange && v > 0.0) {
+    return {
+      severity: "limit",
+      label: "Screen limit reached",
+      description:
+        "You read every symbol, down to the smallest this screen can draw sharply. Your vision may well be better; this screen cannot measure further.",
     };
   }
   if (v <= 0.0) {
@@ -114,7 +128,7 @@ export function recommend(right: EyeScore, left: EyeScore, mode: TestMode = "dis
   if (severities.includes("severe") || severities.includes("moderate")) {
     points.push("Book a comprehensive eye examination with an optometrist or ophthalmologist as soon as practical.");
   }
-  if (severities.some((s) => s !== "normal")) {
+  if (severities.some(isConcern)) {
     points.push(
       near
         ? "Reduced near acuity is most often caused by presbyopia (the age-related loss of focusing, usually from about age 40) or farsightedness, both correctable with reading or multifocal glasses. It can also signal other eye conditions."
@@ -149,7 +163,7 @@ export function recommend(right: EyeScore, left: EyeScore, mode: TestMode = "dis
 
   let urgency: Urgency = "routine";
   if (severities.includes("severe") || severities.includes("moderate")) urgency = "prompt";
-  else if (severities.some((s) => s !== "normal") || io.level === "significant") urgency = "recommended";
+  else if (severities.some(isConcern) || io.level === "significant") urgency = "recommended";
 
   const headline = {
     routine: "No concerns detected on this screening",
